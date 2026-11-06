@@ -1,0 +1,26 @@
+{
+  "id": "./",
+  "name": "Miro Kitchen - Home Cooking",
+  "short_name": "Miro Kitchen",
+  "description": "ميرو كيتشن - مطبخ منزلي فاخر. اطلب أكلك المفضل لحد باب بيتك.",
+  "lang": "ar",
+  "dir": "rtl",
+  "start_url": "./?source=pwa",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#120e0b",
+  "theme_color": "#1b1511",
+  "categories": ["food", "shopping"],
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "المأكولات", "short_name": "المأكولات", "url": "./?go=menu", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "السلة", "short_name": "السلة", "url": "./?go=cart", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "صور المأكولات", "short_name": "الصور", "url": "./?go=gallery", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] }
+  ]
+}

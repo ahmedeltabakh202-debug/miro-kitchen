@@ -2,6 +2,200 @@
 <html lang="ar" dir="rtl" data-theme="light"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Miro Kitchen</title>
+<meta name="theme-color" content="#1b1511">
+<meta name="application-name" content="Miro Kitchen">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Miro Kitchen">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" sizes="64x64" href="icons/favicon-64.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<style id="pwa-css">
+html{touch-action:pan-y pinch-zoom;overscroll-behavior-x:none}
+header>div:nth-of-type(1) b{white-space:nowrap}header .tools{gap:6px}header .tools button{width:38px;height:38px;font-size:17px}@media(max-width:400px){header{gap:8px;padding-inline:12px}header b{font-size:22px}}
+#swHint{position:fixed;top:50%;z-index:40;width:46px;height:46px;margin-top:-23px;border-radius:50%;display:grid;place-items:center;font-size:22px;font-weight:800;color:#1a120b;background:radial-gradient(circle at 32% 28%,#fff8e0,#f0d48a 40%,#c9a04a);box-shadow:0 6px 18px #0008;opacity:0;pointer-events:none;transform:scale(.4)}
+#pwaBar{position:fixed;left:12px;right:12px;bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:7;display:none;align-items:center;gap:10px;padding:10px 12px;border-radius:18px;border:1.5px solid var(--gd);background:linear-gradient(160deg,var(--s2),var(--s1));box-shadow:0 12px 30px #000a;animation:pwaUp .35s ease-out}
+#pwaBar.on{display:flex}
+#pwaBar img{width:42px;height:42px;border-radius:50%;flex:none}
+#pwaBar p{flex:1;margin:0;font-size:13px;line-height:1.5;font-weight:700;color:var(--tx)}
+#pwaBar p small{display:block;font-weight:600;color:var(--mu);font-size:11px}
+#pwaBar .go{background:linear-gradient(145deg,#efd08a,var(--gd),var(--gd2));color:var(--on);border-radius:12px;padding:9px 14px;font-weight:800;font-size:13px;flex:none}
+#pwaBar .x{width:30px;height:30px;border-radius:50%;color:var(--mu);font-size:16px;flex:none}
+@keyframes pwaUp{from{transform:translateY(24px);opacity:0}to{transform:none;opacity:1}}
+</style>
+<script id="pwa-js">
+/* ===== PWA: تسجيل الـ Service Worker + التثبيت + سحب الشاشة للرجوع ===== */
+(function(){
+  var LSG=function(k){try{return localStorage.getItem('mk_'+k)}catch(e){return null}},
+      LSS=function(k,v){try{localStorage.setItem('mk_'+k,v)}catch(e){}};
+  var standalone=function(){return (window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true};
+
+  /* --- Service Worker --- */
+  if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){
+    addEventListener('load',function(){navigator.serviceWorker.register('./sw.js').catch(function(){})});
+  }
+
+  /* --- لون شريط المتصفح حسب الثيم --- */
+  function syncThemeColor(){
+    var m=document.querySelector('meta[name=theme-color]');if(!m)return;
+    m.setAttribute('content',document.documentElement.getAttribute('data-theme')==='light'?'#fffdf7':'#1b1511');
+  }
+  new MutationObserver(syncThemeColor).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+
+  /* --- التثبيت --- */
+  var dp=null,bar=null;
+  var isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent)&&!window.MSStream;
+  function dismissed(){var t=+LSG('pwa_dismiss')||0;return Date.now()-t<3*864e5}
+  function hideBar(){if(bar)bar.classList.remove('on')}
+  function showBar(ios){
+    if(standalone()||dismissed())return;
+    if(!bar){
+      bar=document.createElement('div');bar.id='pwaBar';
+      bar.innerHTML='<img src="icons/icon-192.png" alt=""><p>ثبّت تطبيق Miro Kitchen<small></small></p><button class="go" type="button"></button><button class="x" type="button" aria-label="إغلاق">✕</button>';
+      document.body.appendChild(bar);
+      bar.querySelector('.x').onclick=function(){LSS('pwa_dismiss',String(Date.now()));hideBar()};
+    }
+    var go=bar.querySelector('.go'),sm=bar.querySelector('small');
+    if(ios){sm.textContent='اضغط زر المشاركة ⬆️ ثم «إضافة إلى الشاشة الرئيسية»';go.style.display='none'}
+    else{sm.textContent='افتحه من الشاشة الرئيسية بضغطة واحدة، وبيشتغل حتى من غير نت';go.textContent='📲 تثبيت';go.style.display='';go.onclick=doInstall}
+    bar.classList.add('on');
+  }
+  function headBtn(){
+    if(document.getElementById('bInstall'))return;
+    var t=document.querySelector('.tools');if(!t)return;
+    var b=document.createElement('button');b.id='bInstall';b.type='button';b.textContent='📲';b.setAttribute('aria-label','تثبيت التطبيق');
+    b.onclick=doInstall;t.insertBefore(b,t.firstChild);
+  }
+  function doInstall(){
+    if(!dp){return}
+    var e=dp;dp=null;hideBar();
+    e.prompt();
+    (e.userChoice||Promise.resolve()).then(function(r){
+      var b=document.getElementById('bInstall');
+      if(r&&r.outcome==='accepted'){if(b)b.remove()}
+      else{dp=e}
+    }).catch(function(){});
+  }
+  addEventListener('beforeinstallprompt',function(e){
+    e.preventDefault();dp=e;
+    if(standalone())return;
+    var go=function(){headBtn();showBar(false)};
+    if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',go);else go();
+  });
+  addEventListener('appinstalled',function(){
+    dp=null;hideBar();var b=document.getElementById('bInstall');if(b)b.remove();
+    try{toast('تم تثبيت التطبيق ✅')}catch(e){}
+  });
+
+  document.addEventListener('DOMContentLoaded',function(){
+    if(standalone())return;
+    if(isIOS&&!dismissed())setTimeout(function(){showBar(true)},4000);
+  });
+
+  /* --- سحب الشاشة يمين/شمال للرجوع + دعم زر الرجوع في الهاتف --- */
+  document.addEventListener('DOMContentLoaded',function(){
+    var app=document.getElementById('app');if(!app||typeof go!=='function'||typeof back!=='function')return;
+    var _go=window.go,_back=window.back;
+    var reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    /* ربط التنقل بسجل المتصفح عشان زر الرجوع في أندرويد/كروم يرجّع للصفحة السابقة بدل ما يقفل التطبيق */
+    try{history.replaceState({mk:0},'')}catch(e){}
+    window.go=function(v,push){
+      if(push===undefined)push=true;
+      _go(v,push);
+      if(push){try{history.pushState({mk:1},'')}catch(e){}}
+    };
+    window.back=function(){
+      if(typeof hist!=='undefined'&&hist.length&&history.state&&history.state.mk){history.back()}
+      else _back();
+    };
+    function overlayOpen(){
+      var lb=document.getElementById('lightbox'),md=document.getElementById('modal');
+      return (lb&&lb.classList.contains('on'))||(md&&md.style.display==='flex');
+    }
+    addEventListener('popstate',function(){
+      var lb=document.getElementById('lightbox'),md=document.getElementById('modal');
+      if(lb&&lb.classList.contains('on')){closeLb();try{history.pushState({mk:1},'')}catch(e){}return}
+      if(md&&md.style.display==='flex'){closeM();try{history.pushState({mk:1},'')}catch(e){}return}
+      _back();
+    });
+
+    /* اختصارات الأيقونة: ?go=cart ... */
+    try{
+      var q=new URLSearchParams(location.search).get('go');
+      if(q&&{menu:1,cart:1,reviews:1,gallery:1}[q]){window.go(q)}
+      if(location.search)history.replaceState(history.state,'',location.pathname+location.hash);
+    }catch(e){}
+
+    /* ---- السحب ---- */
+    var hint=document.createElement('div');hint.id='swHint';hint.textContent='↩';document.body.appendChild(hint);
+    var sx=0,sy=0,st=0,dx=0,mode='',busy=false,W=innerWidth;
+    function canBack(){return cur&&cur[0]!=='home'}
+    function blocked(t){
+      if(busy||overlayOpen())return true;
+      if(!t||!t.closest)return false;
+      if(t.closest('nav,header,#modal,#lightbox,#splash,input,textarea,select,[contenteditable],.chart,.atabs'))return true;
+      for(var el=t;el&&el!==document.body;el=el.parentElement){
+        if(el.scrollWidth>el.clientWidth+4){var ox=getComputedStyle(el).overflowX;if(ox==='auto'||ox==='scroll')return true}
+      }
+      return false;
+    }
+    function setHint(p,dir){
+      /* dir>0: السحب لليمين → المؤشر على الشمال */
+      hint.style.left=dir>0?'10px':'auto';hint.style.right=dir>0?'auto':'10px';
+      hint.style.opacity=Math.min(1,p*1.4);hint.style.transform='scale('+(.4+Math.min(1,p)*.7)+')';
+    }
+    function reset(ms){
+      app.style.transition=ms?'transform '+ms+'ms ease,opacity '+ms+'ms ease':'none';
+      app.style.transform='';app.style.opacity='';hint.style.opacity=0;
+      if(ms)setTimeout(function(){app.style.transition=''},ms+30);
+    }
+    document.addEventListener('touchstart',function(e){
+      if(e.touches.length!==1||blocked(e.target)){mode='x';return}
+      var t=e.touches[0];sx=t.clientX;sy=t.clientY;st=Date.now();dx=0;mode='p';W=innerWidth;
+      app.style.transition='none';
+    },{passive:true});
+    document.addEventListener('touchmove',function(e){
+      if(mode==='x'||mode===''||e.touches.length!==1)return;
+      var t=e.touches[0],mx=t.clientX-sx,my=t.clientY-sy;
+      if(mode==='p'){
+        if(Math.abs(mx)>12&&Math.abs(mx)>Math.abs(my)*1.5)mode='h';
+        else if(Math.abs(my)>12){mode='x';return}
+        else return;
+      }
+      dx=mx;
+      var ok=canBack(),shift=ok?dx:dx*.15;
+      app.style.transform='translateX('+shift+'px)';
+      app.style.opacity=ok?String(1-Math.min(.55,Math.abs(dx)/W*.8)):'1';
+      if(ok)setHint(Math.abs(dx)/(W*.3),dx);
+    },{passive:true});
+    function end(){
+      if(mode!=='h'){mode='';return}
+      mode='';
+      var adx=Math.abs(dx),dir=dx>0?1:-1,vel=adx/Math.max(1,Date.now()-st);
+      if(canBack()&&(adx>W*.3||(vel>.55&&adx>50))){
+        busy=true;
+        try{navigator.vibrate&&navigator.vibrate(12)}catch(e){}
+        if(reduce){reset(0);window.back();busy=false;return}
+        app.style.transition='transform .17s ease-in,opacity .17s ease-in';
+        app.style.transform='translateX('+(dir*W)+'px)';app.style.opacity='0';hint.style.opacity=0;
+        setTimeout(function(){
+          app.style.transition='none';
+          window.back();
+          app.style.transform='translateX('+(-dir*W*.35)+'px)';app.style.opacity='0';
+          void app.offsetWidth;
+          app.style.transition='transform .26s cubic-bezier(.2,.9,.3,1),opacity .26s ease-out';
+          app.style.transform='translateX(0)';app.style.opacity='1';
+          setTimeout(function(){app.style.transition='';app.style.transform='';app.style.opacity='';busy=false},300);
+        },175);
+      }else reset(reduce?0:220);
+    }
+    document.addEventListener('touchend',end,{passive:true});
+    document.addEventListener('touchcancel',function(){if(mode==='h')reset(180);mode=''},{passive:true});
+  });
+})();
+</script>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;800&amp;family=Playfair+Display:wght@600;800&amp;family=Reem+Kufi:wght@500;700&amp;display=swap" rel="stylesheet">
 <style>
 :root{--bg:#120e0b;--s1:#1b1511;--s2:#261d16;--bd:#3a2d22;--tx:#f4ead8;--mu:#a8957d;--gd:#d4af6a;--gd2:#a67c35;--on:#1a120b;--bad:#e5645b;--ok:#7fb069;--pr:var(--gd);--gl:#f6dc9c;--hd1:#1f1610f2;--hd2:#120e0bf2;--nv1:#241a12;--nv2:#120e0b;--bg2:#2a1d12;--cd:var(--s1);color-scheme:dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px)}
@@ -622,7 +816,7 @@ const app=c.querySelector('#app');if(app)app.innerHTML='';
 const mb=c.querySelector('#mb');if(mb)mb.innerHTML='';
 const mod=c.querySelector('#modal');if(mod)mod.style.display='none';
 const t=c.querySelector('#toast');if(t){t.style.display='none';t.textContent=''}
-const sp=c.querySelector('#splash');if(sp)sp.remove();
+const sp=c.querySelector('#splash');if(sp)sp.remove();['#pwaBar','#bInstall','#swHint'].forEach(q=>{const x=c.querySelector(q);if(x)x.remove()});const ap=c.querySelector('#app');if(ap){ap.removeAttribute('style')}
 try{c.querySelector('body').insertAdjacentHTML('afterbegin',SPLASH)}catch(e){}
 const o=c.querySelector('#seed');if(o)o.remove();
 let seedJson;try{seedJson=JSON.stringify({cats:catsE,prods:prodsE,orders,exps,cfg,reviews,gallery}).replace(/</g,'\\u003c')}catch(e){toast('حجم الصور كبير جدًا. احذف بعض الصور ثم حاول');return}
