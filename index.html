@@ -737,8 +737,9 @@ const L=(k,d)=>{try{const v=localStorage.getItem('mk_'+k);if(v)return JSON.parse
 const DB={db:null,ok:false,open(){return new Promise(res=>{try{const r=indexedDB.open('miro_kitchen',1);r.onupgradeneeded=()=>r.result.createObjectStore('kv');r.onsuccess=()=>{DB.db=r.result;DB.ok=true;res(true)};r.onerror=r.onblocked=()=>res(false)}catch(e){res(false)}})},
 put(k,v){return new Promise((res,rej)=>{try{const t=DB.db.transaction('kv','readwrite');t.objectStore('kv').put(v,k);t.oncomplete=()=>res();t.onerror=t.onabort=()=>rej(t.error)}catch(e){rej(e)}})},
 all(){return new Promise(res=>{try{const o={},t=DB.db.transaction('kv','readonly'),c=t.objectStore('kv').openCursor();c.onsuccess=()=>{const x=c.result;if(x){o[x.key]=x.value;x.continue()}};t.oncomplete=()=>res(o);t.onerror=t.onabort=()=>res(o)}catch(e){res({})}})}};
-const W=(k,v)=>{if(DB.ok){DB.put(k,JSON.stringify(v)).then(()=>{try{localStorage.removeItem('mk_'+k)}catch(e){}}).catch(()=>toast('تعذر الحفظ: مساحة الجهاز ممتلئة. احذف بعض الصور أو الملفات من الهاتف.'));return}
+const W0=(k,v)=>{if(DB.ok){DB.put(k,JSON.stringify(v)).then(()=>{try{localStorage.removeItem('mk_'+k)}catch(e){}}).catch(()=>toast('تعذر الحفظ: مساحة الجهاز ممتلئة. احذف بعض الصور أو الملفات من الهاتف.'));return}
 try{localStorage.setItem('mk_'+k,JSON.stringify(v))}catch(e){toast('مساحة التخزين ممتلئة. احذف بعض الصور أو اختر صورًا بحجم أصغر، ثم حاول مرة أخرى.')}};
+const W=(k,v)=>{W0(k,v);if(window.syncHook)syncHook(k)};
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const fixImg=u=>{if(!u)return'';u=String(u).trim();if(u.startsWith('%data:'))u=u.slice(1);if(u.endsWith('%')&&u.includes('base64'))u=u.slice(0,-1);return u};
 const imgStyle=u=>{u=fixImg(u);return u?`background-image:url(${u})`:''};
@@ -761,7 +762,7 @@ let ch=false;
 for(const k of keys){if(st[k]==null)continue;try{const v=JSON.parse(st[k]);ch=true;
 if(k=='cats')cats=v.map(c=>({...c,img:c.img||(cats0.find(x=>x.id==c.id)||{}).img}));
 else if(k=='prods')prods=v;else if(k=='orders')orders=v;else if(k=='exps')exps=v;else if(k=='reviews')reviews=v;else if(k=='gallery')gallery=v;else if(k=='ings')ings=v;else if(k=='recs')recs=v;else if(k=='cfg'){cfg=v;if(!cfg.wa)cfg.wa='01214831752'}}catch(e){}}
-if(ch)render()}catch(e){}})();
+if(ch)render()}catch(e){}finally{window.__idbDone=1}})();
 let hist=[],cur=['home'],admin=false,tab='dash',adm=false;
 
 function toast(t){if(/✅/.test(t))snd('ok');const e=$('#toast');e.textContent=t;e.style.display='block';clearTimeout(toast.t);toast.t=setTimeout(()=>e.style.display='none',2200)}
@@ -1106,8 +1107,8 @@ let per='m',invDraft=[];
 function adminGate(){if(admin){go('admin');return}$('#mb').innerHTML=`<h3>دخول الإدارة</h3><label>الرقم السري</label><input id="pn" type="password" inputmode="numeric"><button class="btn" onclick="chkPin()">دخول</button><button class="btn o" onclick="closeM()">إلغاء</button>`;$('#modal').style.display='flex';setTimeout(()=>$('#pn').focus(),50)}
 function chkPin(){if($('#pn').value===cfg.pin){admin=adm=true;tab='dash';closeM();go('admin')}else toast('رقم سري غلط')}
 function ask(m,fn){window._fn=fn;$('#mb').innerHTML=`<h3>${m}</h3><button class="btn r" onclick="_fn()">نعم</button><button class="btn o" onclick="closeM()">لا</button>`;$('#modal').style.display='flex'}
-function adminv(){const T=[['dash','📊','الملخص'],['home','🏠','الرئيسية'],['offer','🔥','العرض'],['prods','🍽️','المنتجات'],['revs','⭐','التقييمات'],['gals','📸','الصور'],['exps','💸','المصروفات'],['inv','🧾','الفواتير'],['ings','🥬','الخامات'],['costs','💰','التكلفة'],['set','⚙️','الإعدادات']];
-return `<div class="sec"><h2>لوحة الإدارة</h2><button class="btn sm" onclick="saveFile()">💾 حفظ ملف</button><button class="btn r sm" onclick="logout()">🚪 خروج</button></div>${[['📈 المبيعات والحسابات',['dash','inv','exps']],['🍲 المنتجات والتكلفة',['prods','ings','costs']],['🎨 واجهة التطبيق',['home','offer','revs','gals']],['⚙️ النظام',['set']]].map(g=>`<div class="agh">${g[0]}</div><div class="atabs">${g[1].map(k=>T.find(t=>t[0]==k)).filter(Boolean).map(t=>`<button class="${tab==t[0]?'on':''}" onclick="tab='${t[0]}';render()"><span>${t[1]}</span>${t[2]}</button>`).join('')}</div>`).join('')}`+({dash:dash,home:homeT,offer:offerT,prods:prodsT,revs:revsT,gals:galsT,exps:expsT,inv:invT,ings:ingsT,costs:costsT,set:setT}[tab])()}
+function adminv(){const T=[['dash','📊','الملخص'],['home','🏠','الرئيسية'],['offer','🔥','العرض'],['prods','🍽️','المنتجات'],['revs','⭐','التقييمات'],['gals','📸','الصور'],['exps','💸','المصروفات'],['inv','🧾','الفواتير'],['ings','🥬','الخامات'],['costs','💰','التكلفة'],['sync','🔄','المزامنة'],['set','⚙️','الإعدادات']];
+return `<div class="sec"><h2>لوحة الإدارة</h2><button class="btn sm" onclick="saveFile()">💾 حفظ ملف</button><button class="btn r sm" onclick="logout()">🚪 خروج</button></div>${[['📈 المبيعات والحسابات',['dash','inv','exps']],['🍲 المنتجات والتكلفة',['prods','ings','costs']],['🎨 واجهة التطبيق',['home','offer','revs','gals']],['⚙️ النظام',['sync','set']]].map(g=>`<div class="agh">${g[0]}</div><div class="atabs">${g[1].map(k=>T.find(t=>t[0]==k)).filter(Boolean).map(t=>`<button class="${tab==t[0]?'on':''}" onclick="tab='${t[0]}';render()"><span>${t[1]}</span>${t[2]}</button>`).join('')}</div>`).join('')}`+({dash:dash,home:homeT,offer:offerT,prods:prodsT,revs:revsT,gals:galsT,exps:expsT,inv:invT,ings:ingsT,costs:costsT,sync:syncT,set:setT}[tab])()}
 const sum=(a,f)=>a.reduce((s,x)=>s+f(x),0);
 function ago(n){const d=new Date();d.setDate(d.getDate()-n);return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate())}
 function inPer(d){const t=today();return per=='d'?d==t:per=='m'?d.slice(0,7)==t.slice(0,7):per=='w'?d>=ago(6):true}
@@ -1151,7 +1152,7 @@ const t=c.querySelector('#toast');if(t){t.style.display='none';t.textContent=''}
 const sp=c.querySelector('#splash');if(sp)sp.remove();['#pwaBar','#bInstall','#swHint'].forEach(q=>{const x=c.querySelector(q);if(x)x.remove()});const ap=c.querySelector('#app');if(ap){ap.removeAttribute('style')}
 try{c.querySelector('body').insertAdjacentHTML('afterbegin',SPLASH)}catch(e){}
 const o=c.querySelector('#seed');if(o)o.remove();
-let seedJson;try{seedJson=JSON.stringify({cats:catsE,prods:prodsE,orders,exps,cfg,reviews,gallery,ings:typeof ings!='undefined'?ings:undefined,recs:typeof recs!='undefined'?recs:undefined}).replace(/</g,'\\u003c')}catch(e){toast('حجم الصور كبير جدًا. احذف بعض الصور ثم حاول');return}
+let seedJson;try{seedJson=JSON.stringify({cats:catsE,prods:prodsE,orders,exps,cfg,reviews,gallery,ings:typeof ings!='undefined'?ings:undefined,recs:typeof recs!='undefined'?recs:undefined,sync:(cfg.sync&&cfg.sync.url&&cfg.sync.on!==false)?{on:true,url:cfg.sync.url,code:cfg.sync.code}:undefined}).replace(/</g,'\\u003c')}catch(e){toast('حجم الصور كبير جدًا. احذف بعض الصور ثم حاول');return}
 const s=document.createElement('script');s.id='seed';s.textContent='window.__SEED='+seedJson+';';
 const sc=c.querySelectorAll('body>script');if(sc.length)(sc[sc.length-2]||sc[sc.length-1]).before(s);else c.querySelector('body').appendChild(s);
 const html='<!doctype html>\n'+c.outerHTML,name='miro-kitchen-'+today()+'.html';
@@ -1317,6 +1318,82 @@ function rlDel(pid,x){rcv(pid,r=>{r.lines.splice(x,1)})}
 function rlAdd(pid){const id=$('#al').value,i=ing(id);if(!i)return;rcv(pid,r=>{if(r.lines.some(l=>l.i==id))toast('الخامة موجودة بالفعل في الوصفة');else r.lines.push({i:id,q:'',u:iDef(i.u)})})}
 function applyCost(pid){const p=prods.find(x=>x.id==pid);if(!p)return;const k=calc(p);p.cost=Math.round(k.tot*100)/100;W('prods',prods);render();toast('تم اعتماد التكلفة: '+M(p.cost)+' ✅')}
 
+
+/* ===== المزامنة بين الأجهزة (Firebase Realtime Database) =====
+   الإدارة (بعد إدخال الرقم السري) ترفع التعديلات، وأي نسخة تانية تستقبلها تلقائيًا.
+   بيتزامن: الأقسام، المنتجات (من غير التكلفة)، التقييمات، الصور، الرئيسية/العرض/أرقام التواصل.
+   مش بيتزامن: الفواتير، المصروفات، الخامات، الوصفات، الرقم السري. */
+const SYK=['cats','prods','reviews','gallery','cfg'];
+const SY={t:{},ok:null,msg:'',busy:false,tm:{},last:null};
+try{SY.t=JSON.parse(LS.g('syt')||'{}')}catch(e){}
+const SYD={on:true,url:'https://workshop-374c6-default-rtdb.europe-west1.firebasedatabase.app',code:'miro-2020'};
+const syCfg=()=>{const c=(cfg.sync&&cfg.sync.url)?cfg.sync:(window.__SEED&&__SEED.sync)||SYD;return c&&c.on!==false&&c.url&&c.code?c:null};
+const syBase=c=>c.url.replace(/\/+$/,'').replace(/\.json$/,'')+'/'+c.code;
+const syPub={cats:()=>cats,reviews:()=>reviews,gallery:()=>gallery,
+ prods:()=>prods.filter(p=>p.id!=='__offer').map(p=>{const q={...p};delete q.cost;return q}),
+ cfg:()=>({wa:cfg.wa,ph:cfg.ph,h:cfg.h,offer:cfg.offer,btnImg:cfg.btnImg})};
+const syJ=(u,o)=>fetch(u,o).then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.json()});
+const syTS=()=>LS.s('syt',JSON.stringify(SY.t));
+function syApply(k,v){
+ if(k=='cats')cats=v.map(c=>({...c,img:c.img||(cats0.find(x=>x.id==c.id)||{}).img}));
+ else if(k=='reviews')reviews=v;else if(k=='gallery')gallery=v;
+ else if(k=='prods'){const old=prods,of=old.find(o=>o.id==='__offer');prods=v.map(p=>({...p,cost:(old.find(o=>o.id==p.id)||{}).cost||0}));if(of)prods.push(of)}
+ else if(k=='cfg')cfg={...cfg,...v};
+ W0(k,{cats,prods,reviews,gallery,cfg}[k])}
+async function syPush(k,b,t){
+ await syJ(b+'/d/'+k+'.json',{method:'PUT',body:JSON.stringify(JSON.stringify(syPub[k]()))});
+ await syJ(b+'/_t.json',{method:'PATCH',body:JSON.stringify({[k]:t})});
+ SY.t[k]=t;syTS()}
+async function syncNow(manual){
+ const c=syCfg();if(!c){syUI();return}if(SY.busy)return;SY.busy=true;
+ try{
+  const b=syBase(c),rt=(await syJ(b+'/_t.json'))||{};let dn=0,up=0;
+  for(const k of SYK){
+   const r=rt[k]||0,l=SY.t[k]||0;
+   if(r>l){const s=await syJ(b+'/d/'+k+'.json');if(s!=null){syApply(k,JSON.parse(s));SY.t[k]=r;dn++}}
+   else if(admin&&(l>r||!r)){await syPush(k,b,l||Date.now());up++}}
+  syTS();SY.ok=true;SY.last=new Date();
+  SY.msg='متصلة ✓ — آخر مزامنة '+SY.last.toLocaleTimeString('ar-EG',{hour:'2-digit',minute:'2-digit'})+(dn||up?' — ↓'+dn+' ↑'+up:'');
+  if(dn&&!admin&&['home','menu','cat','reviews','gallery'].includes(cur[0])&&!/INPUT|TEXTAREA|SELECT/.test((document.activeElement||{}).tagName||''))render();
+  if(manual)toast(dn||up?'تمت المزامنة ✅':'كل شيء محدّث ✅')
+ }catch(e){SY.ok=false;SY.msg='غير متصلة — '+(e.message||'خطأ')+' (راجع الرابط وقواعد Firebase)';if(manual)toast('تعذرت المزامنة')}
+ SY.busy=false;syUI()}
+window.syncHook=k=>{
+ if(!admin||!SYK.includes(k)||!syCfg())return;
+ SY.t[k]=Date.now();syTS();clearTimeout(SY.tm[k]);
+ SY.tm[k]=setTimeout(()=>{const c=syCfg();if(!c)return;
+  syPush(k,syBase(c),SY.t[k]).then(()=>{SY.ok=true;SY.last=new Date();SY.msg='متصلة ✓ — تم رفع آخر تعديل';syUI()})
+  .catch(e=>{SY.ok=false;SY.msg='تعذر الرفع — '+e.message;syUI()})},900)};
+function syUI(){
+ const s=document.getElementById('syStatus');if(!s)return;const c=syCfg();
+ s.style.color=!c?'var(--mu)':SY.ok===false?'var(--bad)':'var(--ok)';s.style.borderColor=s.style.color;
+ s.textContent=!c?'غير مفعّلة':(SY.msg||'جاري الاتصال…');
+ const h=document.getElementById('syChip');if(h)h.textContent=!c?'(متوقفة)':SY.ok?'(متصلة ✓)':'';}
+function syncSave(){
+ const u=(document.getElementById('sy_url').value||'').trim(),k=(document.getElementById('sy_code').value||'').trim().replace(/[^A-Za-z0-9_-]/g,'');
+ if(!/^https:\/\/\S+$/i.test(u)||!k){toast('اكتب رابط Firebase يبدأ بـ https وكودًا بالإنجليزي');return}
+ cfg.sync={on:true,url:u.replace(/\/+$/,'').replace(/\.json$/,''),code:k};W0('cfg',cfg);
+ SY.t={};SYK.forEach(x=>SY.t[x]=Date.now());syTS();SY.ok=null;SY.msg='جاري الرفع…';render();syncNow(1)}
+function syncOff(){cfg.sync=Object.assign(cfg.sync||{},{on:false});W0('cfg',cfg);SY.ok=null;SY.msg='';render();toast('تم إيقاف المزامنة')}
+function syncT(){const c=cfg.sync||SYD;setTimeout(syUI,0);
+ return `<div class="card"><h3>🔄 المزامنة بين الأجهزة <small id="syChip" style="color:var(--ok)"></small></h3>
+<p style="color:var(--mu);font-size:13px;margin:0 0 8px">أي تعديل تعمله هنا (منتجات، أسعار، صور، عروض، تقييمات...) يظهر تلقائيًا عند كل اللي معاهم التطبيق.</p>
+<label>رابط قاعدة البيانات (Firebase)</label><input id="sy_url" dir="ltr" style="text-align:left" placeholder="https://xxxx-default-rtdb.firebaseio.com" value="${esc(c.url||'')}">
+<label>كود المطعم (إنجليزي، نفس الكود على كل الأجهزة)</label><input id="sy_code" dir="ltr" style="text-align:left" placeholder="miro-8431" value="${esc(c.code||'')}">
+<div style="display:flex;gap:8px"><button class="btn g" onclick="syncSave()">✅ حفظ وتفعيل</button><button class="btn o" onclick="syncNow(1)">🔄 مزامنة الآن</button></div>
+<button class="btn r" onclick="syncOff()">⏹ إيقاف</button>
+<div id="syStatus" class="row" style="margin:12px 0 0;display:block;text-align:center"></div>
+<details style="margin-top:14px"><summary style="font-weight:800;color:var(--gd);cursor:pointer">طريقة الإعداد (مرة واحدة فقط)</summary>
+<ol style="line-height:2;font-size:13px;color:var(--tx);padding-inline-start:20px">
+<li>افتح console.firebase.google.com وأنشئ مشروعًا (أو استخدم مشروعك الحالي).</li>
+<li>من Build ← Realtime Database ← Create Database ← ابدأ بوضع الاختبار.</li>
+<li>انسخ الرابط اللي فوق الصفحة والصقه هنا، واكتب أي كود إنجليزي.</li>
+<li>من تبويب Rules خلّيها <b dir="ltr">{"rules":{".read":true,".write":true}}</b> وانشر — وضع الاختبار بيقفل بعد 30 يوم.</li>
+<li>اضغط «حفظ وتفعيل»، بعدين اضغط «💾 حفظ ملف» من أعلى لوحة الإدارة وابعت الملف الجديد للعملاء <b>مرة واحدة</b>.</li>
+</ol><small style="color:var(--mu)">بعدها أي تعديل يوصل لهم لوحده خلال حوالي 20 ثانية بدون ملف جديد. الفواتير والمصروفات والخامات والتكلفة والرقم السري مش بتتزامن.</small></details></div>`}
+(function(){let n=0;const go=()=>{if(window.__idbDone||n++>25)syncNow();else setTimeout(go,300)};setTimeout(go,800);
+ setInterval(()=>{if(!document.hidden)syncNow()},20000);
+ addEventListener('visibilitychange',()=>{if(!document.hidden)syncNow()});addEventListener('online',()=>syncNow())})();
 </script>
 
 </body></html>
